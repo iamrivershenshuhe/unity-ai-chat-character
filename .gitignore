@@ -109,3 +109,6 @@ InitTestScene*.unity*
 # Unity recovery scenes can contain transient unsaved state and local secrets.
 /[Aa]ssets/_Recovery/
 /[Aa]ssets/_Recovery.meta
+
+# Claude Code local config (per-user IDE state)
+.claude/
