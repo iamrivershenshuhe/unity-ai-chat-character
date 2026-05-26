@@ -25,6 +25,9 @@ namespace AIAgentChat
         [Tooltip("等待 AI 回覆時播放的 Bool 參數")]
         [SerializeField] private string talkingBoolName = "IsTalking";
 
+        [Tooltip("行走時播放的 Bool 參數")]
+        [SerializeField] private string walkingBoolName = "IsWalking";
+
         /// <summary>
         /// 情緒字串 → Animator Trigger 名稱對照表。
         /// 若 LLM 回傳的情緒字串不在此表中，會被視為 neutral。
@@ -89,6 +92,16 @@ namespace AIAgentChat
         {
             if (animator == null) return;
             SetTalkingFlag(true);
+        }
+
+        /// <summary>切換 Walk 循環動畫（CharacterNavigator 移動時呼叫）。</summary>
+        public void PlayWalk(bool walking)
+        {
+            if (animator == null) return;
+            if (HasParameter(animator, walkingBoolName, AnimatorControllerParameterType.Bool))
+            {
+                animator.SetBool(walkingBoolName, walking);
+            }
         }
 
         /// <summary>內部：安全地設定 IsTalking Bool。</summary>

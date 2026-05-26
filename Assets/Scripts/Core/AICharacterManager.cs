@@ -124,5 +124,26 @@ namespace AIAgentChat
             animController = anim;
             chatUI = ui;
         }
+
+        /// <summary>
+        /// 切換到指定 zone：套用 zone 的 system prompt 並清空 LLM 對話歷史。
+        /// 由 ZoneManager 在角色抵達 zone 之後呼叫。
+        /// </summary>
+        public void ApplyZone(AIAgentChat.Zones.ZoneDefinition zone)
+        {
+            if (zone == null || llmService == null) return;
+            if (!string.IsNullOrWhiteSpace(zone.systemPrompt))
+            {
+                llmService.SetSystemPrompt(zone.systemPrompt, clearHistory: true);
+            }
+        }
+
+        /// <summary>把外部來源（如投票按鈕、商品卡）的輸入當作玩家訊息送進對話流程。</summary>
+        public void SubmitExternalUserMessage(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message)) return;
+            chatUI?.AppendUserMessage(message);
+            HandleUserMessageSubmitted(message);
+        }
     }
 }

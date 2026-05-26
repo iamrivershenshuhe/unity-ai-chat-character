@@ -35,6 +35,7 @@ namespace AIAgentChat.EditorTools
         {
             { "Idle",      "unitychan_WAIT00" },
             { "Talking",   "unitychan_WAIT01" }, // 等待 AI 回覆時用，循環待機
+            { "Walk",      "unitychan_WALK00_F" }, // zone 切換時的位移動畫
             { "Happy",     "unitychan_WIN00" },
             { "Sad",       "unitychan_LOSE00" },
             { "Thinking",  "unitychan_REFLESH00" },
@@ -58,6 +59,7 @@ namespace AIAgentChat.EditorTools
 
             // 2) 加入 Parameters
             EnsureParameter(controller, "IsTalking", AnimatorControllerParameterType.Bool);
+            EnsureParameter(controller, "IsWalking", AnimatorControllerParameterType.Bool);
             EnsureParameter(controller, "Idle", AnimatorControllerParameterType.Trigger);
             foreach (var emotion in EmotionStates)
             {
@@ -71,6 +73,7 @@ namespace AIAgentChat.EditorTools
             var clips = new Dictionary<string, AnimationClip>();
             clips["Idle"] = ResolveClip("Idle", loop: true, unityChanAvailable);
             clips["Talking"] = ResolveClip("Talking", loop: true, unityChanAvailable);
+            clips["Walk"] = ResolveClip("Walk", loop: true, unityChanAvailable);
             foreach (var emotion in EmotionStates)
             {
                 // 情緒動畫播完會自動回 Idle，因此不需要 loop
@@ -87,6 +90,9 @@ namespace AIAgentChat.EditorTools
 
             var talkingState = rootSm.AddState("Talking");
             talkingState.motion = clips["Talking"];
+
+            var walkState = rootSm.AddState("Walk");
+            walkState.motion = clips["Walk"];
 
             // 各情緒 State
             var emotionStateMap = new Dictionary<string, AnimatorState>();
@@ -110,6 +116,19 @@ namespace AIAgentChat.EditorTools
             talkingToIdle.hasExitTime = false;
             talkingToIdle.duration = 0.1f;
             talkingToIdle.AddCondition(AnimatorConditionMode.IfNot, 0, "IsTalking");
+
+            // Any State → Walk（IsWalking == true）
+            var toWalk = rootSm.AddAnyStateTransition(walkState);
+            toWalk.hasExitTime = false;
+            toWalk.duration = 0.1f;
+            toWalk.canTransitionToSelf = false;
+            toWalk.AddCondition(AnimatorConditionMode.If, 0, "IsWalking");
+
+            // Walk → Idle（IsWalking == false）
+            var walkToIdle = walkState.AddTransition(idleState);
+            walkToIdle.hasExitTime = false;
+            walkToIdle.duration = 0.15f;
+            walkToIdle.AddCondition(AnimatorConditionMode.IfNot, 0, "IsWalking");
 
             // Any State → Emotion（透過 Trigger）
             foreach (var emotion in EmotionStates)

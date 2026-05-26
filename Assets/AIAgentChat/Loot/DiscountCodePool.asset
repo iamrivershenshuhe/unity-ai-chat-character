@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a673142746e391b4d9e1a2c9ff11eaa1, type: 3}
+  m_Name: DiscountCodePool
+  m_EditorClassIdentifier: Assembly-CSharp::AIAgentChat.Loot.DiscountCodePool
+  codes:
+  - code: WELCOME10
+    description: "\u9996\u6B21\u4E92\u52D5 9 \u6298\u512A\u60E0"
+  - code: VIP-GOLD
+    description: "\u5C0A\u69AE\u6703\u54E1 8 \u6298\u512A\u60E0"
+  - code: WISH-2026
+    description: "\u8A31\u9858\u5546\u54C1\u4E0A\u67B6\u6642 7 \u6298\u65E9\u9CE5\u512A\u60E0"
+  - code: TALK-NOW
+    description: "\u672C\u6B21\u5C0D\u8A71\u5167\u53EF\u4F7F\u7528\u7684\u514D\u904B\u5238"

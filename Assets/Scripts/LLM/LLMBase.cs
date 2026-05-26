@@ -52,6 +52,21 @@ namespace AIAgentChat
         public string SystemPrompt => systemPrompt;
 
         /// <summary>
+        /// 動態覆寫 system prompt（zone 切換時使用）。
+        /// 若 clearHistory 為 true 會同時清空對話歷史，避免上一個 zone 的脈絡污染。
+        /// </summary>
+        public virtual void SetSystemPrompt(string prompt, bool clearHistory = true)
+        {
+            if (string.IsNullOrWhiteSpace(prompt))
+            {
+                Debug.LogWarning("[LLMBase] SetSystemPrompt 收到空字串，略過");
+                return;
+            }
+            systemPrompt = prompt;
+            if (clearHistory) ClearHistory();
+        }
+
+        /// <summary>
         /// 玩家送出一則訊息給 LLM。
         /// 此方法會啟動 Coroutine 呼叫子類別實作的 <see cref="RequestCoroutine"/>。
         /// </summary>

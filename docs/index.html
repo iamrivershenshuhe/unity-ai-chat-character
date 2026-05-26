@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luxury AI Space — 互動 Demo</title>
+<meta name="description" content="unity-chan 在豪華套房內的 4 區 AI 互動展示空間，瀏覽器內可實際操作的 demo">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal: #4ECDC4;
+    --coral: #FF6B6B;
+    --yellow: #FFD93D;
+    --wood: #A87651;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: #fafafa;
+    color: #1e293b;
+  }
+  code, .mono { font-family: 'JetBrains Mono', monospace; }
+  .gradient-text {
+    background: linear-gradient(135deg, #4ECDC4 0%, #FF6B6B 50%, #FFD93D 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .gradient-bg {
+    background:
+      radial-gradient(at 20% 20%, rgba(78,205,196,0.25) 0px, transparent 50%),
+      radial-gradient(at 80% 30%, rgba(255,107,107,0.18) 0px, transparent 50%),
+      radial-gradient(at 50% 80%, rgba(255,217,61,0.15) 0px, transparent 50%),
+      #0f172a;
+  }
+  .glass {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+
+  /* ===== Floor plan ===== */
+  #floor-plan {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 20 / 15;
+    background:
+      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(135deg, #1a1f2e 0%, #0f172a 100%);
+    background-size: 5% 5%, 5% 5%, 100% 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #1e293b;
+  }
+  .wall {
+    position: absolute;
+    background: rgba(120, 90, 60, 0.4);
+  }
+  .wall.left   { left: 0; top: 0; bottom: 0; width: 4px; }
+  .wall.right  { right: 0; top: 0; bottom: 0; width: 4px; background: rgba(135, 180, 220, 0.3); }
+  .wall.top    { left: 0; right: 0; top: 0; height: 4px; }
+  .wall.bottom { left: 0; right: 0; bottom: 0; height: 4px; }
+  .wall-label {
+    position: absolute;
+    color: rgba(255,255,255,0.4);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .furniture {
+    position: absolute;
+    border-radius: 3px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .furniture-label {
+    position: absolute;
+    color: rgba(255,255,255,0.65);
+    font-size: 10px;
+    font-weight: 500;
+    pointer-events: none;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+
+  .anchor {
+    position: absolute;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.3);
+    transform: translate(-50%, -50%);
+    transition: all 0.3s;
+  }
+  .anchor.active {
+    border-color: white;
+    box-shadow: 0 0 16px currentColor;
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+
+  #character {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    transform: translate(-50%, -50%);
+    transition: left 2s cubic-bezier(0.4, 0, 0.2, 1), top 2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 30;
+  }
+  #character .body {
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at 30% 30%, #FFB6C1, #FF69B4);
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 0 12px rgba(255, 105, 180, 0.6), 0 2px 6px rgba(0,0,0,0.4);
+    position: relative;
+  }
+  #character .body::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 50%;
+    width: 4px; height: 8px;
+    background: #fff;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    opacity: 0.9;
+  }
+  #character.walking .body {
+    animation: bob 0.4s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+  }
+
+  #camera-icon {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    transform: translate(-50%, -50%);
+    transition: left 2s cubic-bezier(0.4, 0, 0.2, 1), top 2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.95);
+    border-radius: 50%;
+    border: 2px solid #0f172a;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    font-size: 14px;
+  }
+
+  #camera-frustum {
+    position: absolute;
+    width: 0; height: 0;
+    transform-origin: 50% 100%;
+    transition: left 2s cubic-bezier(0.4, 0, 0.2, 1), top 2s cubic-bezier(0.4, 0, 0.2, 1), transform 2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 5;
+    pointer-events: none;
+    border-left: 80px solid transparent;
+    border-right: 80px solid transparent;
+    border-bottom: 200px solid rgba(255,255,255,0.05);
+    border-radius: 4px;
+  }
+
+  .treasure {
+    position: absolute;
+    width: 26px; height: 26px;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    cursor: pointer;
+    font-size: 22px;
+    text-align: center;
+    line-height: 26px;
+    animation: chest-glow 1.4s ease-in-out infinite;
+    user-select: none;
+  }
+  @keyframes chest-glow {
+    0%, 100% { filter: drop-shadow(0 0 8px #ffd93d); transform: translate(-50%, -50%) scale(1); }
+    50%      { filter: drop-shadow(0 0 16px #ffd93d) drop-shadow(0 0 24px #ff6b6b); transform: translate(-50%, -50%) scale(1.1); }
+  }
+  .treasure.opened {
+    animation: none;
+    filter: drop-shadow(0 0 4px #ffd93d);
+    pointer-events: none;
+  }
+  .treasure-popup {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #ffd93d, #ff6b6b);
+    color: white;
+    font-weight: bold;
+    padding: 8px 14px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    font-size: 12px;
+    animation: popup 0.4s ease-out;
+  }
+  @keyframes popup {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  .path-trace {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(78,205,196,0.6), rgba(255,107,107,0.3));
+    transform-origin: 0 50%;
+    border-radius: 1px;
+    pointer-events: none;
+    z-index: 4;
+    opacity: 0;
+    animation: trace-fade 3s ease-out forwards;
+  }
+  @keyframes trace-fade {
+    0%   { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+
+  /* ===== Tabs ===== */
+  .tab-btn {
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .tab-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+  .tab-btn.active { transform: translateY(-2px); }
+
+  /* ===== Chat ===== */
+  .msg-user {
+    background: linear-gradient(135deg, #4ECDC4, #3aa8a0);
+    color: white;
+    align-self: flex-end;
+    border-radius: 14px 14px 4px 14px;
+  }
+  .msg-ai {
+    background: white;
+    color: #1e293b;
+    align-self: flex-start;
+    border-radius: 14px 14px 14px 4px;
+    border: 1px solid #e2e8f0;
+  }
+  .msg-system {
+    background: linear-gradient(135deg, rgba(255,217,61,0.2), rgba(255,107,107,0.2));
+    color: #92400e;
+    align-self: center;
+    border-radius: 12px;
+    font-size: 12px;
+    border: 1px dashed rgba(255,217,61,0.5);
+  }
+  .typing-indicator span {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #94a3b8;
+    margin: 0 1px;
+    animation: typing 1.2s ease-in-out infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+
+  /* ===== Vote rows ===== */
+  .wish-row {
+    transition: background 0.15s;
+  }
+  .wish-row:hover { background: #f8fafc; }
+  .vote-btn {
+    transition: transform 0.15s;
+  }
+  .vote-btn:active { transform: scale(0.92); }
+  .vote-pop {
+    position: absolute;
+    color: #FF6B6B;
+    font-weight: bold;
+    pointer-events: none;
+    animation: vote-pop 0.7s ease-out forwards;
+  }
+  @keyframes vote-pop {
+    0%   { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-30px); }
+  }
+
+  /* ===== Status bar ===== */
+  #status-bar {
+    transition: all 0.3s;
+  }
+</style>
+</head>
+<body class="antialiased">
+
+<!-- ========== TOP NAV ========== -->
+<nav class="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-slate-200">
+  <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2 font-bold">
+      <span class="w-6 h-6 rounded bg-gradient-to-br from-teal-400 via-pink-400 to-yellow-300"></span>
+      <span>Luxury AI Space</span>
+      <span class="text-xs text-slate-500 mono ml-2 hidden sm:inline">interactive demo</span>
+    </a>
+    <div class="hidden md:flex items-center gap-4 text-sm">
+      <a href="#demo" class="hover:text-teal-600">玩玩看</a>
+      <a href="#flow" class="hover:text-teal-600">UI 流程</a>
+      <a href="#tech" class="hover:text-teal-600">技術</a>
+      <a href="https://github.com/iamrivershenshuhe/unity-ai-chat-character" target="_blank" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-700">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ========== HERO ========== -->
+<section id="top" class="gradient-bg text-white">
+  <div class="max-w-6xl mx-auto px-6 py-16 md:py-20">
+    <div class="inline-flex items-center gap-2 glass px-4 py-1.5 rounded-full text-xs font-medium mb-6">
+      <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+      Interactive Demo · 在瀏覽器內模擬 Unity 體驗
+    </div>
+    <h1 class="text-4xl md:text-6xl font-black tracking-tight mb-4">
+      Luxury AI <span class="gradient-text">互動空間</span>
+    </h1>
+    <p class="text-lg text-slate-300 max-w-2xl mb-6">
+      不只是介紹頁 — 你可以在下方直接點 tab、看 unity-chan 走動、撿寶箱、跟 AI 對話、投票、收推薦。
+      模擬實際 Unity demo 的全套 UI 流程。
+    </p>
+    <a href="#demo" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-slate-900 font-medium hover:bg-slate-100">
+      ↓ 開始玩
+    </a>
+  </div>
+</section>
+
+<!-- ========== INTERACTIVE DEMO ========== -->
+<section id="demo" class="py-12 bg-slate-100">
+  <div class="max-w-7xl mx-auto px-6">
+
+    <!-- ===== Tab Bar ===== -->
+    <div class="bg-slate-900 rounded-t-2xl p-3 flex flex-wrap gap-2">
+      <button class="tab-btn active flex-1 min-w-[120px] px-4 py-3 rounded-xl bg-white text-slate-900 font-bold shadow-lg flex items-center justify-center gap-2"
+              data-zone="0" style="--accent: #4ECDC4;">
+        <span>💬</span><span>一般閒聊</span>
+      </button>
+      <button class="tab-btn flex-1 min-w-[120px] px-4 py-3 rounded-xl bg-slate-700 text-white/70 font-medium hover:bg-slate-600 flex items-center justify-center gap-2"
+              data-zone="1" style="--accent: #FF6B6B;">
+        <span>🛍️</span><span>產品問答</span>
+      </button>
+      <button class="tab-btn flex-1 min-w-[120px] px-4 py-3 rounded-xl bg-slate-700 text-white/70 font-medium hover:bg-slate-600 flex items-center justify-center gap-2"
+              data-zone="2" style="--accent: #FFD93D;">
+        <span>💡</span><span>許願投票</span>
+      </button>
+      <button class="tab-btn flex-1 min-w-[120px] px-4 py-3 rounded-xl bg-slate-700 text-white/70 font-medium hover:bg-slate-600 flex items-center justify-center gap-2"
+              data-zone="3" style="--accent: #4ECDC4;">
+        <span>✨</span><span>個性化推薦</span>
+      </button>
+    </div>
+
+    <!-- ===== Main Grid: Floor Plan + Zone UI ===== -->
+    <div class="bg-white rounded-b-2xl shadow-2xl overflow-hidden">
+      <div class="grid lg:grid-cols-5 gap-0">
+
+        <!-- 2D Floor Plan (3 cols) -->
+        <div class="lg:col-span-3 p-6 bg-slate-50 border-r border-slate-200">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <div class="text-xs text-slate-500 mono">TOP-DOWN VIEW · 20m × 15m</div>
+              <h3 class="font-bold">空間佈局 + 角色移動</h3>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-slate-600">
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background:#FF69B4"></span>unity-chan</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-white border border-slate-400"></span>📷 相機</span>
+            </div>
+          </div>
+
+          <div id="floor-plan">
+            <!-- walls -->
+            <div class="wall left"></div>
+            <div class="wall right"></div>
+            <div class="wall top"></div>
+            <div class="wall bottom"></div>
+            <div class="wall-label" style="left: 8px; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: 0 0;">左牆</div>
+            <div class="wall-label" style="right: -10px; top: 50%; transform: translateY(-50%) rotate(90deg); transform-origin: 100% 0;">落地窗</div>
+            <div class="wall-label" style="left: 50%; top: 6px; transform: translateX(-50%);">後牆 +Z</div>
+            <div class="wall-label" style="left: 50%; bottom: 6px; transform: translateX(-50%);">前牆 -Z</div>
+
+            <!-- Furniture (will be injected by JS) -->
+            <!-- Anchors (will be injected by JS) -->
+            <!-- Character & Camera (will be injected by JS) -->
+          </div>
+
+          <!-- Status Bar -->
+          <div id="status-bar" class="mt-3 p-3 bg-slate-900 text-slate-200 rounded-lg text-xs flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-3">
+              <span class="mono text-slate-500">STATE:</span>
+              <span id="status-text" class="font-bold">在 Q1 · 一般閒聊 · Idle</span>
+            </div>
+            <div class="flex items-center gap-2 text-slate-400">
+              <span class="mono text-slate-500">AI PROMPT:</span>
+              <span id="prompt-preview" class="italic">「友善閒聊主持人...」</span>
+            </div>
+          </div>
+
+          <!-- Hint -->
+          <p class="mt-3 text-xs text-slate-500 flex items-center gap-2">
+            <span>💡</span>
+            <span>點上方 4 個 tab 切換 zone · 移動時路徑會隨機刷寶箱可點 · 抵達後可在右側 panel 操作</span>
+          </p>
+        </div>
+
+        <!-- Zone UI Panel (2 cols) -->
+        <div class="lg:col-span-2 flex flex-col bg-white" style="min-height: 600px;">
+
+          <!-- Panel 0: Chat (default) -->
+          <div id="panel-chat" class="zone-panel flex flex-col flex-1">
+            <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-teal-50 to-white">
+              <div class="text-xs mono text-teal-700 mb-1">ZONE UI · CHAT MODE</div>
+              <h3 class="font-bold flex items-center gap-2"><span>💬</span><span id="chat-title">一般閒聊</span></h3>
+            </div>
+            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto flex flex-col gap-2 bg-slate-50" style="min-height: 320px; max-height: 420px;">
+              <!-- messages injected -->
+            </div>
+            <div id="typing-row" class="px-4 py-2 text-xs text-slate-500 typing-indicator hidden">
+              AI 思考中 <span></span><span></span><span></span>
+            </div>
+            <div class="p-3 border-t border-slate-200 flex gap-2">
+              <input id="chat-input" type="text" placeholder="輸入訊息..."
+                     class="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-teal-400 text-sm">
+              <button id="chat-send" class="px-4 py-2 rounded-lg bg-teal-500 text-white font-medium hover:bg-teal-600 text-sm">送出</button>
+            </div>
+          </div>
+
+          <!-- Panel 2: Wish Voting (hidden initially) -->
+          <div id="panel-wish" class="zone-panel flex-col flex-1 hidden">
+            <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-yellow-50 to-white">
+              <div class="text-xs mono text-yellow-700 mb-1">ZONE UI · WISH VOTING</div>
+              <h3 class="font-bold flex items-center gap-2"><span>💡</span><span>商品許願榜</span></h3>
+              <p class="text-xs text-slate-500 mt-1">點 +1 加票 / 自己許願會加入榜尾</p>
+            </div>
+            <div id="wish-list" class="flex-1 p-4 overflow-y-auto space-y-2 bg-slate-50" style="min-height: 320px;">
+              <!-- wish rows injected -->
+            </div>
+            <div class="p-3 border-t border-slate-200 flex gap-2">
+              <input id="wish-input" type="text" placeholder="我想許願一個..."
+                     class="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-yellow-400 text-sm">
+              <button id="wish-submit" class="px-4 py-2 rounded-lg bg-yellow-400 text-yellow-900 font-bold hover:bg-yellow-500 text-sm">許願</button>
+            </div>
+          </div>
+
+          <!-- Panel 3: Recommendation -->
+          <div id="panel-rec" class="zone-panel flex-col flex-1 hidden">
+            <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-teal-50 to-white">
+              <div class="text-xs mono text-teal-700 mb-1">ZONE UI · PERSONALIZATION</div>
+              <h3 class="font-bold flex items-center gap-2"><span>✨</span><span>為你推薦</span></h3>
+              <p class="text-xs text-slate-500 mt-1">點商品卡 → AI 詳細介紹</p>
+            </div>
+            <div id="rec-cards" class="flex-1 p-4 grid grid-cols-1 gap-3 overflow-y-auto bg-slate-50" style="min-height: 320px;">
+              <!-- cards injected -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Reset Demo -->
+    <div class="mt-4 flex justify-end">
+      <button id="reset-demo" class="text-xs text-slate-500 hover:text-slate-700 underline">重置 demo（清空對話 / 重新開始）</button>
+    </div>
+  </div>
+</section>
+
+<!-- ========== UI FLOW DIAGRAM ========== -->
+<section id="flow" class="py-16 bg-white">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="text-center mb-10">
+      <div class="inline-block px-3 py-1 rounded-full bg-pink-100 text-pink-800 text-xs font-medium mb-3">UI Flow</div>
+      <h2 class="text-3xl font-black mb-3">點下 tab 之後發生的事</h2>
+      <p class="text-slate-600 max-w-2xl mx-auto text-sm">每次切 zone 都是一連串連動的事件 — 動畫、AI、UI 同步切換</p>
+    </div>
+
+    <div class="grid md:grid-cols-5 gap-4">
+      <div class="bg-slate-50 rounded-xl p-5 relative">
+        <div class="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">1</div>
+        <div class="text-2xl mb-2">👆</div>
+        <h4 class="font-bold mb-1">User 點 Tab</h4>
+        <p class="text-xs text-slate-600">ZoneTabBar 接 onClick → 通知 ZoneManager</p>
+      </div>
+      <div class="bg-slate-50 rounded-xl p-5 relative">
+        <div class="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">2</div>
+        <div class="text-2xl mb-2">📷</div>
+        <h4 class="font-bold mb-1">Camera 跟拍</h4>
+        <p class="text-xs text-slate-600">CameraRig.StartFollow → 沿路徑方向計算 offset → 從後方跟拍</p>
+      </div>
+      <div class="bg-slate-50 rounded-xl p-5 relative">
+        <div class="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">3</div>
+        <div class="text-2xl mb-2">🚶‍♀️</div>
+        <h4 class="font-bold mb-1">Navigator 移動</h4>
+        <p class="text-xs text-slate-600">轉向 → 播 Walk → 直線走 → 隨機刷寶箱 → 抵達</p>
+      </div>
+      <div class="bg-slate-50 rounded-xl p-5 relative">
+        <div class="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">4</div>
+        <div class="text-2xl mb-2">🎬</div>
+        <h4 class="font-bold mb-1">Camera 定位</h4>
+        <p class="text-xs text-slate-600">StopFollow → 平滑 lerp 到 zone 固定機位（unity-chan + 家具入鏡）</p>
+      </div>
+      <div class="bg-slate-50 rounded-xl p-5 relative">
+        <div class="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center">5</div>
+        <div class="text-2xl mb-2">🧠</div>
+        <h4 class="font-bold mb-1">AI + UI 換</h4>
+        <p class="text-xs text-slate-600">System prompt 換、對話清空、UI panel 切到對應 mode</p>
+      </div>
+    </div>
+
+    <div class="mt-10 bg-slate-900 text-slate-200 rounded-2xl p-6 overflow-x-auto">
+      <div class="text-xs text-slate-500 mb-3 mono">CODE FLOW (簡化)</div>
+<pre class="text-sm leading-relaxed mono">tabBar.onClick(<span class="text-teal-400">zone</span>)
+  → zoneManager.<span class="text-yellow-400">RequestZone</span>(zone)
+      → cameraRig.<span class="text-pink-400">StartFollow</span>(unityChan, pathStart, pathEnd)
+      → navigator.<span class="text-pink-400">MoveTo</span>(zone.anchorPos, zone.anchorYaw)
+            ↳ <span class="text-yellow-400">OnPathStarted</span> → treasureSpawner.Spawn?
+            ↳ <span class="text-pink-400">每幀</span>: transform.position += moveSpeed * dt
+            ↳ <span class="text-yellow-400">OnPathArrived</span>
+      → cameraRig.<span class="text-pink-400">SwitchTo</span>(zone.cameraPos, ..., 1.2s)
+      → aiManager.<span class="text-pink-400">ApplyZone</span>(zone)
+            ↳ llm.<span class="text-pink-400">SetSystemPrompt</span>(zone.prompt, clearHistory=true)
+      → <span class="text-yellow-400">OnZoneActivated</span>
+            ↳ panelSwitcher: enable target.uiMode panel
+            ↳ tabBar: highlight active tab</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ========== TECH ========== -->
+<section id="tech" class="py-16 bg-slate-50">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="text-center mb-10">
+      <div class="inline-block px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-xs font-medium mb-3">Stack &amp; Architecture</div>
+      <h2 class="text-3xl font-black mb-3">背後的系統</h2>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white rounded-xl p-5 border border-slate-200">
+        <div class="text-xs font-bold text-teal-600 mono mb-2">CORE</div>
+        <ul class="space-y-1 text-sm">
+          <li><code class="mono text-xs">ZoneDefinition</code> ScriptableObject</li>
+          <li><code class="mono text-xs">ZoneManager</code></li>
+          <li><code class="mono text-xs">AICharacterManager</code></li>
+          <li><code class="mono text-xs">LLMBase</code> + Gemini / ChatGPT</li>
+        </ul>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-slate-200">
+        <div class="text-xs font-bold text-pink-600 mono mb-2">MOVE &amp; CAMERA</div>
+        <ul class="space-y-1 text-sm">
+          <li><code class="mono text-xs">CharacterNavigator</code></li>
+          <li><code class="mono text-xs">CharacterAnimatorController</code></li>
+          <li><code class="mono text-xs">CameraRig</code> (follow + lerp)</li>
+        </ul>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-slate-200">
+        <div class="text-xs font-bold text-yellow-600 mono mb-2">UI &amp; LOOT</div>
+        <ul class="space-y-1 text-sm">
+          <li><code class="mono text-xs">ZoneTabBar</code></li>
+          <li><code class="mono text-xs">ZonePanelSwitcher</code></li>
+          <li><code class="mono text-xs">WishVotingPanel</code></li>
+          <li><code class="mono text-xs">RecommendationPanel</code></li>
+          <li><code class="mono text-xs">TreasureChest</code> + Spawner</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+      <div class="text-xs font-bold text-slate-600 mono mb-3">8 EDITOR TOOLS — 一鍵建場</div>
+      <div class="flex flex-wrap gap-2">
+        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs mono">Setup CJK Font</span>
+        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs mono">Setup AI Character Animator</span>
+        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs mono">Setup AI Chat Scene</span>
+        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs mono">Use Unity-chan in Scene</span>
+        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs mono">Build Luxury Room</span>
+        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs mono">Build Zones + Office Furniture</span>
+        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs mono">Wire Zone System Into Scene</span>
+        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs mono">Fix EventSystem Input Module</span>
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-wrap gap-2 text-xs">
+      <span class="px-3 py-1 bg-white border border-slate-200 rounded-full">Unity 6 (6000.4)</span>
+      <span class="px-3 py-1 bg-white border border-slate-200 rounded-full">C# 9</span>
+      <span class="px-3 py-1 bg-white border border-slate-200 rounded-full">TextMeshPro</span>
+      <span class="px-3 py-1 bg-white border border-slate-200 rounded-full">Input System</span>
+      <span class="px-3 py-1 bg-white border border-slate-200 rounded-full">unity-chan!</span>
+      <span class="px-3 py-1 bg-white border border-slate-200 rounded-full">ChatGPT API</span>
+      <span class="px-3 py-1 bg-white border border-slate-200 rounded-full">Gemini API</span>
+      <span class="px-3 py-1 bg-white border border-slate-200 rounded-full">Newtonsoft.Json</span>
+    </div>
+  </div>
+</section>
+
+<footer class="bg-slate-900 text-slate-400 py-10 text-center text-sm">
+  <div class="max-w-6xl mx-auto px-6">
+    <p>Luxury AI Space · 互動 Demo 頁　|　使用 unity-chan! 模型 © UTJ/UCL</p>
+    <p class="mt-2"><a href="https://github.com/iamrivershenshuhe/unity-ai-chat-character" target="_blank" class="hover:text-white">GitHub Repo ↗</a></p>
+  </div>
+</footer>
+
+<!-- ========================================================== -->
+<!-- ============== INTERACTIVE DEMO SCRIPT ==================== -->
+<!-- ========================================================== -->
+<script>
+(() => {
+  // ===== Zone Configuration =====
+  const zones = [
+    {
+      id: 'chat', name: '一般閒聊', icon: '💬', accent: '#4ECDC4',
+      anchor: { x: -3,    z: -1.5 },
+      camera: { x: 2,     z: -1.5 },
+      uiMode: 'chat',
+      prompt: '友善閒聊主持人 · 短回應 · 溫暖口吻',
+      mockReplies: [
+        '嗨～今天感覺怎麼樣？',
+        '哈哈這個我也喜歡！要不要再多聊一點？',
+        '說到這個我就想到上次有人跟我說...',
+        '哇真的嗎？聽起來超有趣的耶 😊',
+        '對啊對啊，這個世界真的好多事情值得分享。',
+      ],
+    },
+    {
+      id: 'qa', name: '產品問答', icon: '🛍️', accent: '#FF6B6B',
+      anchor: { x: 1.5,   z: -3 },
+      camera: { x: 1.5,   z: 2 },
+      uiMode: 'chat',
+      prompt: '專業產品顧問 · 條理清晰列點 · 不誇大',
+      mockReplies: [
+        '這款商品的重點規格：\n• 重量 320g\n• 防水 IPX5\n• 續航 12 小時\n適合通勤族與健身愛好者。',
+        '價格區間落在 NT$1,290 ~ NT$1,890，會員另享 9 折。',
+        '保固 1 年，可線上申請維修，平均處理時間 3 個工作天。',
+        '建議搭配 A-2 系列充電座一起使用，續航體驗會更完整。',
+      ],
+    },
+    {
+      id: 'wish', name: '許願投票', icon: '💡', accent: '#FFD93D',
+      anchor: { x: -1.5,  z: 3 },
+      camera: { x: -1.5,  z: -2 },
+      uiMode: 'wish',
+      prompt: '社群許願版主持人 · 熱情總結需求 · 反問細節',
+      mockReplies: [
+        '哇這個提議好棒！我幫你登記，看看其他人會不會也想要 ✨',
+        '+1 收到！順便問你：你比較希望什麼顏色？',
+        '已經幫你票投上了～目前這個提案在榜單第 2 名喔 🔥',
+      ],
+    },
+    {
+      id: 'rec', name: '個性化推薦', icon: '✨', accent: '#4ECDC4',
+      anchor: { x: 1.5,   z: 3 },
+      camera: { x: 1.5,   z: -2 },
+      uiMode: 'rec',
+      prompt: '個性化推薦員 · 像認識使用者的老朋友 · 每次 1~2 件',
+      mockReplies: [
+        '我覺得你會喜歡「極簡羊毛圍巾」，因為你之前提到通勤需要保暖又輕便。',
+        '考慮一下「黃銅機械桌燈」？編輯精選，光線很柔和適合居家工作。',
+        '這款再生皮革錢包很符合你說的永續取向，5 卡 1 鈔層剛剛好。',
+      ],
+    },
+  ];
+
+  // ===== Furniture (world coords) =====
+  const furniture = [
+    // Q1 sofa (left wall)
+    { x: -9, z: -1.5, w: 1.0, h: 3.0, color: '#f5f5f5', label: 'Q1 沙發', zone: 0 },
+    { x: -7.5, z: -1.5, w: 1.0, h: 1.4, color: '#A87651', label: '茶几', zone: 0 },
+    // Q2 display table (front wall)
+    { x: 3, z: -6.7, w: 3.5, h: 0.8, color: '#A87651', label: 'Q2 展示桌', zone: 1 },
+    { x: 1.9, z: -6.7, w: 0.45, h: 0.45, color: '#FF6B6B', label: '', zone: 1 },
+    { x: 3.0, z: -6.7, w: 0.45, h: 0.45, color: '#f5f5f5', label: '', zone: 1 },
+    { x: 4.1, z: -6.7, w: 0.45, h: 0.45, color: '#4ECDC4', label: '', zone: 1 },
+    // Q3 vote board (back wall)
+    { x: -3, z: 7.4, w: 3.6, h: 0.2, color: '#FFD93D', label: 'Q3 投票板', zone: 2 },
+    { x: -3, z: 5.5, w: 1.2, h: 0.6, color: '#A87651', label: '高腳桌', zone: 2 },
+    // Q4 office desk (back wall)
+    { x: 3, z: 6.7, w: 3.0, h: 0.9, color: '#f5f5f5', label: 'Q4 辦公桌', zone: 3 },
+    { x: 2.5, z: 6.55, w: 0.7, h: 0.3, color: '#1e293b', label: '螢幕', zone: 3 },
+    { x: 3.0, z: 5.6, w: 0.6, h: 0.6, color: '#4ECDC4', label: '', zone: 3 },
+    { x: 4.5, z: 5.6, w: 0.6, h: 0.6, color: '#FF6B6B', label: '', zone: 3 },
+  ];
+
+  // ===== Discount Codes =====
+  const codes = [
+    { code: 'WELCOME10', desc: '首次互動 9 折' },
+    { code: 'VIP-GOLD',  desc: '尊榮會員 8 折' },
+    { code: 'WISH-2026', desc: '許願商品 7 折早鳥' },
+    { code: 'TALK-NOW',  desc: '本次對話免運券' },
+    { code: 'CHAT-VIP',  desc: '聊天滿 10 句解鎖' },
+  ];
+
+  // ===== Wishes initial =====
+  let wishes = [
+    { title: '限定版聯名 T-shirt', votes: 18 },
+    { title: '可客製化的金屬書籤', votes: 12 },
+    { title: '迷你機械鍵盤',     votes:  9 },
+  ];
+
+  // ===== Recommendation products =====
+  const recProducts = [
+    { name: '極簡羊毛圍巾', tag: '本週熱銷', blurb: '美麗諾羊毛 · 輕薄保暖 · 5 色可選', accent: '#4ECDC4' },
+    { name: '黃銅機械桌燈', tag: '編輯精選', blurb: '暖色 2700K · 三段亮度 · 適合居家工作', accent: '#FF6B6B' },
+    { name: '再生皮革錢包', tag: '永續精選', blurb: '回收皮革 · 5 卡 1 鈔層 · 100% 可降解', accent: '#FFD93D' },
+  ];
+
+  // ===== State =====
+  const state = {
+    currentZone: 0,
+    isMoving: false,
+    chatHistory: [],     // {role, text}
+    treasureChests: [],  // {el, opened}
+    replyCounter: [0, 0, 0, 0], // mock reply rotation per zone
+  };
+
+  // ===== Coord transform: world → pixel (percent of floor plan) =====
+  // Room: x ∈ [-10, 10], z ∈ [-7.5, 7.5]
+  const toPx = (x, z) => ({
+    left: ((x + 10) / 20) * 100,         // %
+    top:  ((7.5 - z) / 15) * 100,        // % (flip Z so +Z is up)
+  });
+
+  const floorPlan = document.getElementById('floor-plan');
+
+  // ===== Render furniture =====
+  function renderFurniture() {
+    furniture.forEach(f => {
+      const pos = toPx(f.x, f.z);
+      const widthPct = (f.w / 20) * 100;
+      const heightPct = (f.h / 15) * 100;
+      const div = document.createElement('div');
+      div.className = 'furniture';
+      div.style.left = `calc(${pos.left}% - ${widthPct/2}%)`;
+      div.style.top = `calc(${pos.top}% - ${heightPct/2}%)`;
+      div.style.width = widthPct + '%';
+      div.style.height = heightPct + '%';
+      div.style.background = f.color;
+      floorPlan.appendChild(div);
+
+      if (f.label) {
+        const label = document.createElement('div');
+        label.className = 'furniture-label';
+        label.textContent = f.label;
+        label.style.left = `calc(${pos.left}% + ${widthPct/2 + 0.5}%)`;
+        label.style.top = `calc(${pos.top}% - 1%)`;
+        floorPlan.appendChild(label);
+      }
+    });
+  }
+
+  // ===== Render anchors =====
+  const anchorEls = [];
+  function renderAnchors() {
+    zones.forEach((z, idx) => {
+      const pos = toPx(z.anchor.x, z.anchor.z);
+      const a = document.createElement('div');
+      a.className = 'anchor';
+      a.style.left = pos.left + '%';
+      a.style.top = pos.top + '%';
+      a.style.background = z.accent;
+      a.style.color = z.accent;
+      a.title = `Q${idx+1} · ${z.name}`;
+      floorPlan.appendChild(a);
+      anchorEls.push(a);
+    });
+  }
+
+  // ===== Character & Camera =====
+  const character = document.createElement('div');
+  character.id = 'character';
+  character.innerHTML = '<div class="body"></div>';
+  floorPlan.appendChild(character);
+
+  const cameraIcon = document.createElement('div');
+  cameraIcon.id = 'camera-icon';
+  cameraIcon.textContent = '📷';
+  floorPlan.appendChild(cameraIcon);
+
+  function placeCharacter(x, z, instant = false) {
+    const pos = toPx(x, z);
+    if (instant) {
+      character.style.transition = 'none';
+      character.style.left = pos.left + '%';
+      character.style.top = pos.top + '%';
+      character.offsetHeight; // reflow
+      character.style.transition = '';
+    } else {
+      character.style.left = pos.left + '%';
+      character.style.top = pos.top + '%';
+    }
+  }
+  function placeCamera(x, z, instant = false) {
+    const pos = toPx(x, z);
+    if (instant) {
+      cameraIcon.style.transition = 'none';
+      cameraIcon.style.left = pos.left + '%';
+      cameraIcon.style.top = pos.top + '%';
+      cameraIcon.offsetHeight;
+      cameraIcon.style.transition = '';
+    } else {
+      cameraIcon.style.left = pos.left + '%';
+      cameraIcon.style.top = pos.top + '%';
+    }
+  }
+
+  // Initial position
+  placeCharacter(zones[0].anchor.x, zones[0].anchor.z, true);
+  placeCamera(zones[0].camera.x, zones[0].camera.z, true);
+
+  // ===== Mark active anchor =====
+  function updateActiveAnchor(idx) {
+    anchorEls.forEach((a, i) => a.classList.toggle('active', i === idx));
+  }
+  updateActiveAnchor(0);
+
+  // ===== Path trace =====
+  function drawPathTrace(fromX, fromZ, toX, toZ) {
+    const fromPos = toPx(fromX, fromZ);
+    const toPos = toPx(toX, toZ);
+    const dx = toPos.left - fromPos.left;
+    const dy = toPos.top - fromPos.top;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    const trace = document.createElement('div');
+    trace.className = 'path-trace';
+    trace.style.left = fromPos.left + '%';
+    trace.style.top = fromPos.top + '%';
+    trace.style.width = dist + '%';
+    trace.style.transform = `rotate(${angle}deg)`;
+    floorPlan.appendChild(trace);
+    setTimeout(() => trace.remove(), 3000);
+  }
+
+  // ===== Treasure chest =====
+  function spawnTreasureChest(pathStart, pathEnd) {
+    if (Math.random() > 0.7) return; // 70% spawn rate for demo
+    // Random point along path 30%-70%, with perpendicular jitter
+    const t = 0.3 + Math.random() * 0.4;
+    const cx = pathStart.x + (pathEnd.x - pathStart.x) * t;
+    const cz = pathStart.z + (pathEnd.z - pathStart.z) * t;
+    // perpendicular jitter
+    const dirX = pathEnd.x - pathStart.x;
+    const dirZ = pathEnd.z - pathStart.z;
+    const len = Math.hypot(dirX, dirZ) || 1;
+    const perpX = -dirZ / len;
+    const perpZ = dirX / len;
+    const jitter = (Math.random() - 0.5) * 0.8;
+    const x = cx + perpX * jitter;
+    const z = cz + perpZ * jitter;
+
+    const pos = toPx(x, z);
+    const chest = document.createElement('div');
+    chest.className = 'treasure';
+    chest.textContent = '📦';
+    chest.style.left = pos.left + '%';
+    chest.style.top = pos.top + '%';
+    chest.addEventListener('click', (e) => {
+      if (chest.classList.contains('opened')) return;
+      chest.classList.add('opened');
+      chest.textContent = '🎁';
+      const c = codes[Math.floor(Math.random() * codes.length)];
+      const popup = document.createElement('div');
+      popup.className = 'treasure-popup';
+      popup.innerHTML = `🎁 <span class="mono">${c.code}</span><br><span style="font-weight:normal; font-size:10px;">${c.desc}</span>`;
+      chest.appendChild(popup);
+      pushChatMessage('system', `🎁 你獲得優惠碼 <span class="mono font-bold">${c.code}</span> — ${c.desc}`);
+      setTimeout(() => chest.remove(), 4000);
+    });
+    floorPlan.appendChild(chest);
+    state.treasureChests.push(chest);
+  }
+
+  function clearOldChests() {
+    state.treasureChests.forEach(c => { if (!c.classList.contains('opened')) c.remove(); });
+    state.treasureChests = state.treasureChests.filter(c => c.classList.contains('opened'));
+  }
+
+  // ===== Tabs =====
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetZone = parseInt(btn.dataset.zone);
+      if (state.isMoving || targetZone === state.currentZone) return;
+      requestZone(targetZone);
+    });
+  });
+
+  function setTabsEnabled(enabled) {
+    tabBtns.forEach(b => b.disabled = !enabled);
+  }
+
+  function updateTabUI(activeIdx) {
+    tabBtns.forEach((b, i) => {
+      const isActive = i === activeIdx;
+      b.classList.toggle('active', isActive);
+      if (isActive) {
+        b.className = 'tab-btn active flex-1 min-w-[120px] px-4 py-3 rounded-xl bg-white text-slate-900 font-bold shadow-lg flex items-center justify-center gap-2';
+      } else {
+        b.className = 'tab-btn flex-1 min-w-[120px] px-4 py-3 rounded-xl bg-slate-700 text-white/70 font-medium hover:bg-slate-600 flex items-center justify-center gap-2';
+      }
+    });
+  }
+
+  // ===== Status bar =====
+  const statusText = document.getElementById('status-text');
+  const promptPreview = document.getElementById('prompt-preview');
+  function updateStatus(zoneIdx, action = 'Idle') {
+    const z = zones[zoneIdx];
+    statusText.textContent = `Q${zoneIdx+1} · ${z.name} · ${action}`;
+    promptPreview.textContent = `「${z.prompt}」`;
+  }
+  updateStatus(0);
+
+  // ===== UI panels switching =====
+  const panels = {
+    chat: document.getElementById('panel-chat'),
+    wish: document.getElementById('panel-wish'),
+    rec:  document.getElementById('panel-rec'),
+  };
+  function showPanel(mode) {
+    Object.entries(panels).forEach(([k, el]) => {
+      const show = (k === mode);
+      el.classList.toggle('hidden', !show);
+      el.classList.toggle('flex', show);
+    });
+  }
+  function updateChatTitle(zoneIdx) {
+    const z = zones[zoneIdx];
+    document.getElementById('chat-title').textContent = z.name;
+  }
+
+  // ===== Request zone (main flow) =====
+  async function requestZone(targetIdx) {
+    const fromZone = zones[state.currentZone];
+    const toZone = zones[targetIdx];
+
+    state.isMoving = true;
+    setTabsEnabled(false);
+    updateTabUI(targetIdx);
+    updateStatus(targetIdx, 'Walking...');
+
+    // Clear old chests
+    clearOldChests();
+
+    // Draw path
+    drawPathTrace(fromZone.anchor.x, fromZone.anchor.z, toZone.anchor.x, toZone.anchor.z);
+
+    // Spawn treasure chest (chance)
+    spawnTreasureChest(fromZone.anchor, toZone.anchor);
+
+    // Move character to target anchor
+    placeCharacter(toZone.anchor.x, toZone.anchor.z);
+
+    // Move camera to follow position (behind character along path)
+    const dx = toZone.anchor.x - fromZone.anchor.x;
+    const dz = toZone.anchor.z - fromZone.anchor.z;
+    const len = Math.hypot(dx, dz) || 1;
+    const followBehindDist = 2.5;
+    const followCamX = toZone.anchor.x - (dx / len) * followBehindDist;
+    const followCamZ = toZone.anchor.z - (dz / len) * followBehindDist;
+    placeCamera(followCamX, followCamZ);
+
+    // Add walking class
+    character.classList.add('walking');
+
+    // Wait for movement (2s)
+    await new Promise(r => setTimeout(r, 2100));
+
+    // Stop walking
+    character.classList.remove('walking');
+
+    // Camera switch to zone fixed position
+    placeCamera(toZone.camera.x, toZone.camera.z);
+
+    // Wait for camera lerp (1.2s)
+    await new Promise(r => setTimeout(r, 1200));
+
+    // Activate zone
+    state.currentZone = targetIdx;
+    updateActiveAnchor(targetIdx);
+    updateStatus(targetIdx);
+    showPanel(toZone.uiMode);
+    updateChatTitle(targetIdx);
+
+    // Clear chat history on zone switch (simulating system prompt reset)
+    if (toZone.uiMode === 'chat') {
+      pushChatMessage('system', `📍 已抵達 <strong>${toZone.name}</strong> 區 — System prompt 已切換`);
+      // AI greeting based on new zone
+      setTimeout(() => {
+        const greeting = {
+          0: '嗨！我們在沙發休息區。今天想聊什麼？',
+          1: '歡迎來到產品展示區。想知道哪款商品的細節呢？',
+        }[targetIdx] || '我來囉～';
+        pushChatMessage('ai', greeting);
+      }, 400);
+    }
+
+    state.isMoving = false;
+    setTabsEnabled(true);
+  }
+
+  // ===== Chat panel =====
+  const chatMessages = document.getElementById('chat-messages');
+  const chatInput = document.getElementById('chat-input');
+  const chatSend = document.getElementById('chat-send');
+  const typingRow = document.getElementById('typing-row');
+
+  function pushChatMessage(role, text) {
+    const div = document.createElement('div');
+    const baseClass = 'max-w-[85%] px-3 py-2 text-sm whitespace-pre-line';
+    if (role === 'user')   div.className = baseClass + ' msg-user';
+    else if (role === 'ai') div.className = baseClass + ' msg-ai';
+    else if (role === 'system') div.className = baseClass + ' msg-system';
+    div.innerHTML = text;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function aiTyping(show) {
+    typingRow.classList.toggle('hidden', !show);
+  }
+
+  function aiRespond(zoneIdx, userText) {
+    aiTyping(true);
+    setTimeout(() => {
+      aiTyping(false);
+      const z = zones[zoneIdx];
+      const reply = z.mockReplies[state.replyCounter[zoneIdx] % z.mockReplies.length];
+      state.replyCounter[zoneIdx]++;
+      pushChatMessage('ai', reply);
+    }, 800 + Math.random() * 600);
+  }
+
+  chatSend.addEventListener('click', () => {
+    const txt = chatInput.value.trim();
+    if (!txt) return;
+    pushChatMessage('user', txt);
+    chatInput.value = '';
+    aiRespond(state.currentZone, txt);
+  });
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') chatSend.click();
+  });
+
+  // Initial greeting
+  pushChatMessage('system', '🎬 Demo 開始 — 你目前在 <strong>Q1 一般閒聊</strong> 區');
+  pushChatMessage('ai', '嗨！我是 unity-chan，現在在豪華沙發區陪你聊天 ☺️');
+
+  // ===== Wish voting panel =====
+  const wishList = document.getElementById('wish-list');
+  const wishInput = document.getElementById('wish-input');
+  const wishSubmit = document.getElementById('wish-submit');
+
+  function renderWishes() {
+    wishes.sort((a, b) => b.votes - a.votes);
+    wishList.innerHTML = '';
+    wishes.slice(0, 5).forEach((wish, idx) => {
+      const row = document.createElement('div');
+      row.className = 'wish-row p-3 bg-white rounded-lg border border-slate-200 flex items-center gap-3';
+      row.innerHTML = `
+        <div class="text-lg font-black text-slate-400 w-8">#${idx+1}</div>
+        <div class="flex-1">
+          <div class="font-medium text-sm">${wish.title}</div>
+          <div class="text-xs text-slate-500 mt-0.5">❤ ${wish.votes} 票</div>
+        </div>
+        <button class="vote-btn relative px-3 py-1.5 rounded-full bg-pink-500 text-white text-xs font-bold hover:bg-pink-600">
+          +1
+        </button>
+      `;
+      const btn = row.querySelector('button');
+      btn.addEventListener('click', (e) => {
+        wish.votes++;
+        // pop animation
+        const pop = document.createElement('div');
+        pop.className = 'vote-pop';
+        pop.textContent = '+1';
+        pop.style.left = '50%';
+        pop.style.top = '0';
+        btn.appendChild(pop);
+        setTimeout(() => pop.remove(), 700);
+        renderWishes();
+      });
+      wishList.appendChild(row);
+    });
+  }
+  renderWishes();
+
+  wishSubmit.addEventListener('click', () => {
+    const t = wishInput.value.trim();
+    if (!t) return;
+    wishes.push({ title: t, votes: 1 });
+    wishInput.value = '';
+    renderWishes();
+  });
+  wishInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') wishSubmit.click();
+  });
+
+  // ===== Recommendation panel =====
+  const recCards = document.getElementById('rec-cards');
+  function renderRecCards() {
+    recCards.innerHTML = '';
+    recProducts.forEach((p, idx) => {
+      const card = document.createElement('div');
+      card.className = 'p-4 bg-white rounded-xl border border-slate-200 cursor-pointer hover:shadow-md transition-all';
+      card.style.borderTop = `4px solid ${p.accent}`;
+      card.innerHTML = `
+        <div class="flex items-start justify-between mb-2">
+          <div class="text-xs font-bold px-2 py-0.5 rounded" style="background:${p.accent}25; color:${p.accent}">${p.tag}</div>
+          <span class="text-2xl">${['🧣', '💡', '👛'][idx]}</span>
+        </div>
+        <div class="font-bold mb-1">${p.name}</div>
+        <div class="text-xs text-slate-600 mb-3">${p.blurb}</div>
+        <button class="w-full px-3 py-1.5 rounded-lg text-white text-xs font-bold" style="background:${p.accent}">
+          ✨ 想知道更多
+        </button>
+      `;
+      card.querySelector('button').addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Switch back to chat panel to show AI response
+        showPanel('chat');
+        document.getElementById('chat-title').textContent = '個性化推薦';
+        pushChatMessage('user', `我想知道「${p.name}」(${p.tag}) 的詳情`);
+        aiRespond(3, p.name);
+        // Switch back to rec panel after 2.5s
+        setTimeout(() => {
+          if (state.currentZone === 3) {
+            showPanel('rec');
+          }
+        }, 3000);
+      });
+      recCards.appendChild(card);
+    });
+  }
+  renderRecCards();
+
+  // ===== Reset =====
+  document.getElementById('reset-demo').addEventListener('click', () => {
+    state.currentZone = 0;
+    state.isMoving = false;
+    state.chatHistory = [];
+    state.replyCounter = [0,0,0,0];
+    wishes = [
+      { title: '限定版聯名 T-shirt', votes: 18 },
+      { title: '可客製化的金屬書籤', votes: 12 },
+      { title: '迷你機械鍵盤',     votes:  9 },
+    ];
+    clearOldChests();
+    chatMessages.innerHTML = '';
+    pushChatMessage('system', '🎬 Demo 已重置 — 回到 <strong>Q1 一般閒聊</strong>');
+    pushChatMessage('ai', '我又回來了！想再聊聊嗎？');
+    renderWishes();
+    placeCharacter(zones[0].anchor.x, zones[0].anchor.z, true);
+    placeCamera(zones[0].camera.x, zones[0].camera.z, true);
+    updateActiveAnchor(0);
+    updateStatus(0);
+    showPanel('chat');
+    updateChatTitle(0);
+    updateTabUI(0);
+    setTabsEnabled(true);
+  });
+
+  // ===== Init =====
+  renderFurniture();
+  renderAnchors();
+})();
+</script>
+
+</body>
+</html>
